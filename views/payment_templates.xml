@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="dlocalgo13_acquirer_button" name="DLocal Go 13 Custom Button">
+        <div t-attf-class="o_payment_option_card #{'active' if checked else ''}">
+            <label>
+                <input type="radio" name="acquirer_id" t-att-value="id" t-att-checked="checked"/>
+                <span class="o_payment_option_name"><t t-esc="name"/></span>
+                <img t-if="image_128" t-att-src="image_data_uri(image_128)" class="float-right" alt="logo"/>
+            </label>
+            <div class="o_payment_option_form d-none"> <form t-if="acquirer" method="post" t-att-action="tx_url"> <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                    <input t-foreach="tx_values" t-as="value_key" t-key="value_key"
+                        type="hidden" t-att-name="value_key" t-att-value="tx_values[value_key]"/>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Pagar con <t t-esc="name"/>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <template id="dlocalgo13_payment_info" inherit_id="website_sale.confirmation">
+        <xpath expr="//h1" position="after">
+            <t t-set="dlocalgo_tx" t-value="request.env['payment.transaction'].sudo().search([('reference', '=', order.name), ('acquirer_id.provider', '=', 'dlocalgo13')], order='id desc', limit=1)"/>
+            <t t-if="dlocalgo_tx">
+                <div class="alert alert-info mt-3">
+                    <h4>Información de Pago DLocalGo</h4>
+                    <ul>
+                        <li><strong>Método de pago:</strong> <t t-esc="dlocalgo_tx.dlocalgo_payment_method or 'N/A'"/></li>
+                        <li><strong>Pagador:</strong> <t t-esc="dlocalgo_tx.dlocalgo_payer_name or 'N/A'"/></li>
+                        <li><strong>Email:</strong> <t t-esc="dlocalgo_tx.dlocalgo_payer_email or 'N/A'"/></li>
+                        <li><strong>Monto pagado:</strong> <t t-esc="dlocalgo_tx.amount"/> <t t-esc="dlocalgo_tx.currency_id.name"/></li>
+                        <li><strong>ID de transacción:</strong> <t t-esc="dlocalgo_tx.acquirer_reference or 'N/A'"/></li>
+                    </ul>
+                </div>
+            </t>
+        </xpath>
+    </template>
+</odoo>

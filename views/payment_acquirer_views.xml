@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="acquirer_form_dlocalgo13" model="ir.ui.view">
+        <field name="name">acquirer.form.dlocalgo13</field>
+        <field name="model">payment.acquirer</field>
+        <field name="inherit_id" ref="payment.acquirer_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="DLocal Go 13 Config" name="dlocalgo13_config_page"
+                      attrs="{'invisible': [('provider', '!=', 'dlocalgo13')]}">
+                    
+                    <group name="dlocalgo13_main_settings_group">
+                        
+                        <group string="API URLs" name="dlocalgo13_urls_group">
+                            <field name="dlocalgo13_prod_url"/>
+                            <field name="dlocalgo13_test_url"/>
+                        </group>
+                        
+                        <separator string="Credenciales de Producción"/>
+                        <group name="dlocalgo13_prod_credentials_group">
+                            <field name="dlocalgo13_prod_secret_key" password="True"
+                                   attrs="{'required': [('state', '=', 'enabled')]}"/>
+                            <field name="dlocalgo13_prod_public_key"/>
+                        </group>
+                        
+                        <separator string="Credenciales de Prueba"/>
+                        <group name="dlocalgo13_test_credentials_group">
+                            <field name="dlocalgo13_test_secret_key" password="True"
+                                   attrs="{'required': [('state', '=', 'test')]}"/>
+                            <field name="dlocalgo13_test_public_key"/>
+                        </group>
+                        
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
