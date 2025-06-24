@@ -60,8 +60,16 @@ class AcquirerDLocalGo13(models.Model):
         """Obtiene los headers necesarios para la API."""
         self.ensure_one()
         credentials = self._get_dlocalgo13_credentials()
+        import base64
+        
+        # DLocalGo soporta tanto Basic como Bearer auth
+        # Probamos primero con Basic auth (más estándar)
+        auth_string = f"{credentials['public_key']}:{credentials['secret_key']}"
+        auth_bytes = auth_string.encode('ascii')
+        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+        
         return {
-            'Authorization': f'Bearer {credentials["public_key"]}:{credentials["secret_key"]}',
+            'Authorization': f'Basic {auth_b64}',
             'Content-Type': 'application/json'
         }
 
@@ -120,27 +128,67 @@ class AcquirerDLocalGo13(models.Model):
             # Si no existe, usar la URL por defecto del webhook
             base_url = self.get_base_url() if hasattr(self, 'get_base_url') else ''
             notification_url = base_url.rstrip('/') + '/payment/dlocalgo13/webhook'
+        
+        # Obtener información del partner para el payer
+        partner_id = values.get('partner_id')
+        partner_name = ''
+        partner_email = ''
+        partner_document = ''
+        
+        if partner_id:
+            partner = self.env['res.partner'].browse(int(partner_id))
+            if partner.exists():
+                partner_name = partner.name or ''
+                partner_email = partner.email or ''
+                partner_document = partner.vat or ''
+        
+        # Usar valores alternativos si no se encontró el partner
+        if not partner_name:
+            partner_name = values.get('customer_name', values.get('partner_name', 'Cliente'))
+        if not partner_email:
+            partner_email = values.get('customer_email', values.get('partner_email', ''))
+        
         payload = {
             'currency': values['currency'],
             'amount': float(values['amount']),
             'country': 'PE',  # Por defecto Perú
             'order_id': values['reference'],
-            'description': values['reference'],
+            'description': f"Pago orden {values['reference']}",
             'success_url': f"{values['return_url']}?order_id={values['reference']}",
             'back_url': values.get('cancel_url') or values.get('return_url') or '/shop/payment',
-            'notification_url': notification_url
+            'notification_url': notification_url,
+            'payer': {
+                'name': partner_name,
+                'email': partner_email,
+                'document': partner_document,
+                'user_reference': str(partner_id) if partner_id else ''
+            },
+            'payment_method_flow': 'REDIRECT'  # Para pagos con redirección
         }
         _logger.info("Payload limpio enviado a DLocalGo: %s", payload)
 
         try:
+            # Log detallado de la petición
+            headers_log = {k: v if k != 'Authorization' else 'Basic ***' for k, v in self._dlocalgo13_get_headers().items()}
+            _logger.info("=== PETICIÓN A DLOCALGO ===")
+            _logger.info("URL: %s", self._dlocalgo13_get_api_url())
+            _logger.info("Headers: %s", headers_log)
+            _logger.info("Payload: %s", json.dumps(payload, indent=2))
+            
             response = requests.post(
                 self._dlocalgo13_get_api_url(),
                 headers=self._dlocalgo13_get_headers(),
                 json=payload
             )
+            
+            _logger.info("=== RESPUESTA DE DLOCALGO ===")
+            _logger.info("Status Code: %s", response.status_code)
+            _logger.info("Response Headers: %s", dict(response.headers))
+            _logger.info("Response Text: %s", response.text)
+            
             response.raise_for_status()
             result = response.json()
-            _logger.info("Respuesta de DLocalGo: %s", json.dumps(result, indent=2))
+            _logger.info("Respuesta JSON de DLocalGo: %s", json.dumps(result, indent=2))
 
             if result.get('redirect_url'):
                 # Actualizar el estado de la transacción
@@ -158,6 +206,14 @@ class AcquirerDLocalGo13(models.Model):
                 })
                 return False, False
 
+        except requests.exceptions.HTTPError as e:
+            error_details = f"HTTP {e.response.status_code}: {e.response.text}" if e.response else str(e)
+            _logger.exception("Error HTTP al llamar a DLocalGo: %s", error_details)
+            tx_sudo.write({
+                'state': 'error',
+                'state_message': f'Error HTTP al llamar a DLocalGo: {error_details}'
+            })
+            return False, False
         except Exception as e:
             _logger.exception("Error al llamar a DLocalGo: %s", str(e))
             tx_sudo.write({
