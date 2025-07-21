@@ -6,6 +6,7 @@ from odoo.http import request
 import logging
 import requests
 import json
+from odoo import api
 
 _logger = logging.getLogger(__name__)
 
@@ -33,6 +34,15 @@ class AcquirerDLocalGo13(models.Model):
     # --- Credenciales de PRUEBA ---
     dlocalgo13_test_secret_key = fields.Char(string='Test Secret Key', password=True, copy=False, groups='base.group_user')
     dlocalgo13_test_public_key = fields.Char(string='Test Api Key', copy=False, groups='base.group_user')
+
+    @api.constrains('provider', 'state', 'dlocalgo13_prod_secret_key', 'dlocalgo13_test_secret_key')
+    def _check_dlocalgo13_required_fields(self):
+        for rec in self:
+            if rec.provider == 'dlocalgo13':
+                if rec.state == 'enabled' and not rec.dlocalgo13_prod_secret_key:
+                    raise ValidationError(_('El campo "Prod Secret Key" es obligatorio cuando el proveedor es DLocalGo13 y el estado es "enabled".'))
+                if rec.state == 'test' and not rec.dlocalgo13_test_secret_key:
+                    raise ValidationError(_('El campo "Test Secret Key" es obligatorio cuando el proveedor es DLocalGo13 y el estado es "test".'))
 
     def _get_dlocalgo13_credentials(self):
         """Devuelve un diccionario con las credenciales correctas según el estado."""

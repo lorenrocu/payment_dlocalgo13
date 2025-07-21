@@ -18,15 +18,13 @@
                         
                         <separator string="Credenciales de Producción"/>
                         <group name="dlocalgo13_prod_credentials_group">
-                            <field name="dlocalgo13_prod_secret_key" password="True"
-                                   attrs="{'required': [('state', '=', 'enabled')]}"/>
+                            <field name="dlocalgo13_prod_secret_key" password="True"/>
                             <field name="dlocalgo13_prod_public_key"/>
                         </group>
                         
                         <separator string="Credenciales de Prueba"/>
                         <group name="dlocalgo13_test_credentials_group">
-                            <field name="dlocalgo13_test_secret_key" password="True"
-                                   attrs="{'required': [('state', '=', 'test')]}"/>
+                            <field name="dlocalgo13_test_secret_key" password="True"/>
                             <field name="dlocalgo13_test_public_key"/>
                         </group>
                         
