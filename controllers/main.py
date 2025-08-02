@@ -56,28 +56,8 @@ class DLocalGo13Controller(http.Controller):
                             _logger.error("DLocalGo13: La orden %s no tiene partner asociado", order.name)
                             return request.redirect('/shop/payment?error=order_no_partner')
                     else:
-                        _logger.warning("DLocalGo13: No se encontró orden con referencia %s, intentando con order_id", base_reference)
-                        if post.get('order_id'):
-                            try:
-                                order_id_int = int(post.get('order_id'))
-                                order = request.env['sale.order'].sudo().browse(order_id_int)
-                                if order.exists():
-                                    _logger.info("DLocalGo13: Orden encontrada por order_id: %s", order.name)
-                                    if order.partner_id:
-                                        post['partner_id'] = order.partner_id.id
-                                        _logger.info("DLocalGo13: Usando partner_id de la orden: %s", post['partner_id'])
-                                    else:
-                                        _logger.error("DLocalGo13: La orden %s no tiene partner asociado", order.name)
-                                        return request.redirect('/shop/payment?error=order_no_partner')
-                                else:
-                                    _logger.error("DLocalGo13: No se encontró ninguna orden con order_id=%s", order_id_int)
-                                    return request.redirect('/shop/payment?error=order_not_found')
-                            except ValueError:
-                                _logger.error("DLocalGo13: order_id inválido %s", post.get('order_id'))
-                                return request.redirect('/shop/payment?error=invalid_order_id')
-                        else:
-                            _logger.error("DLocalGo13: No se pudo encontrar la orden con referencia %s y no se proporcionó order_id", base_reference)
-                            return request.redirect('/shop/payment?error=order_not_found')
+                        _logger.error("DLocalGo13: No se pudo encontrar la orden con referencia %s", base_reference)
+                        return request.redirect('/shop/payment?error=order_not_found')
                 else:
                     post['partner_id'] = request.env.user.partner_id.id
                     _logger.info("DLocalGo13: Usando partner_id de la sesión: %s", post['partner_id'])
